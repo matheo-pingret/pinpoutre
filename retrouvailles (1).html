@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#12162a">
+<title>Retrouvailles</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,450;9..144,600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1326;
+    --surface: #171c38;
+    --line: #2c3260;
+    --gold: #e3b56c;
+    --rose: #d98f92;
+    --text: #f1ede4;
+    --text-dim: #9198bf;
+    --text-faint: #5c6390;
+    --bg-deep: color-mix(in srgb, var(--bg) 80%, #000 20%);
+    --surface-2: color-mix(in srgb, var(--surface) 88%, #fff 12%);
+    --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+    --font-ui: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-ui);
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    min-height: 100vh;
+    background:
+      radial-gradient(ellipse 120% 60% at 50% -10%, color-mix(in srgb, var(--gold) 20%, var(--bg)) 0%, transparent 55%),
+      radial-gradient(ellipse 90% 50% at 85% 0%, color-mix(in srgb, var(--rose) 16%, var(--bg)) 0%, transparent 50%),
+      var(--bg);
+    padding: max(28px, env(safe-area-inset-top)) 20px max(40px, env(safe-area-inset-bottom));
+    display: flex;
+    justify-content: center;
+  }
+  .stars {
+    position: fixed; inset: 0; pointer-events: none; opacity: .55;
+  }
+  .app {
+    width: 100%;
+    max-width: 460px;
+    position: relative;
+  }
+
+  /* ---- header / route ---- */
+  .route {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    font-size: 13px; color: var(--text-dim); letter-spacing: .02em;
+    margin-bottom: 30px;
+  }
+  .route .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); flex: none; }
+  .route .path {
+    flex: 0 0 40px; height: 1px;
+    background: repeating-linear-gradient(90deg, var(--text-faint) 0 4px, transparent 4px 8px);
+  }
+
+  /* ---- event switcher tabs ---- */
+  .tabs {
+    display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 22px;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    flex: none; padding: 9px 16px; border-radius: 100px; font-size: 13.5px; font-weight: 600;
+    background: var(--surface); color: var(--text-dim); border: 1px solid var(--line);
+    cursor: pointer; white-space: nowrap; transition: background .15s, color .15s, border-color .15s;
+  }
+  .tab.active { background: var(--gold); color: #241a08; border-color: var(--gold); }
+  .tab.add { color: var(--gold); border-style: dashed; background: transparent; }
+
+  /* ---- hero card ---- */
+  .card {
+    background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
+    border: 1px solid var(--line);
+    border-radius: 28px;
+    padding: 34px 26px 28px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: ''; position: absolute; top: -60%; left: 50%; transform: translateX(-50%);
+    width: 280px; height: 280px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(227,181,108,.14) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .event-label { font-size: 13px; color: var(--text-dim); margin-bottom: 6px; }
+  .event-title {
+    font-family: var(--font-display); font-weight: 450; font-size: 22px;
+    margin: 0 0 26px; line-height: 1.25;
+  }
+
+  .big-days { position: relative; }
+  .big-days .num {
+    font-family: var(--font-display); font-weight: 300; font-size: 96px; line-height: .9;
+    background: linear-gradient(180deg, #fff 0%, var(--gold) 120%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    letter-spacing: -0.02em;
+  }
+  .big-days .lbl { font-size: 14px; color: var(--text-dim); margin-top: 6px; }
+
+  .hms { display: flex; justify-content: center; gap: 8px; margin: 26px 0 24px; }
+  .hms .unit { flex: 1; min-width: 0; }
+  .hms .unit .v {
+    font-family: var(--font-display); font-size: clamp(15px, 4.6vw, 21px); font-weight: 450;
+    background: var(--bg-deep); border: 1px solid var(--line); border-radius: 14px;
+    padding: 10px 4px 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .hms .unit .l { font-size: 10.5px; color: var(--text-faint); margin-top: 6px; letter-spacing: .04em; }
+
+  .progress-wrap { margin-top: 4px; }
+  .progress-track {
+    height: 8px; border-radius: 100px; background: var(--bg-deep);
+    border: 1px solid var(--line); overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; border-radius: 100px;
+    background: linear-gradient(90deg, var(--rose), var(--gold));
+    transition: width .6s ease;
+  }
+  .progress-meta {
+    display: flex; justify-content: space-between; margin-top: 9px;
+    font-size: 12.5px; color: var(--text-dim);
+  }
+  .progress-meta .pct { color: var(--gold); font-weight: 600; }
+
+  .done-msg { font-family: var(--font-display); font-size: 20px; color: var(--gold); padding: 20px 0; }
+
+  /* ---- other events list ---- */
+  .section-label { font-size: 13px; color: var(--text-dim); margin: 30px 2px 12px; }
+  .list { display: flex; flex-direction: column; gap: 10px; }
+  .item {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
+    padding: 14px 16px; cursor: pointer;
+  }
+  .item-title { font-size: 14.5px; font-weight: 500; }
+  .item-date { font-size: 12px; color: var(--text-faint); margin-top: 2px; }
+  .item-days { font-family: var(--font-display); font-size: 20px; color: var(--gold); }
+  .item-days .u { font-family: var(--font-ui); font-size: 11px; color: var(--text-faint); margin-left: 3px; }
+  .item-del {
+    background: none; border: none; color: var(--text-faint); font-size: 18px;
+    padding: 4px 8px; cursor: pointer; line-height: 1;
+  }
+
+  .empty { text-align: center; color: var(--text-dim); font-size: 14px; padding: 30px 10px; }
+
+  /* ---- new event sheet ---- */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(6,8,18,.65); backdrop-filter: blur(2px);
+    display: flex; align-items: flex-end; justify-content: center; z-index: 20;
+    opacity: 0; pointer-events: none; transition: opacity .2s;
+  }
+  .overlay.open { opacity: 1; pointer-events: auto; }
+  .sheet {
+    width: 100%; max-width: 460px; background: var(--surface-2);
+    border: 1px solid var(--line); border-bottom: none;
+    border-radius: 26px 26px 0 0; padding: 22px 22px max(24px, env(safe-area-inset-bottom));
+    transform: translateY(20px); transition: transform .25s;
+  }
+  .overlay.open .sheet { transform: translateY(0); }
+  .sheet h2 { font-family: var(--font-display); font-weight: 450; font-size: 21px; margin: 4px 0 20px; }
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 12.5px; color: var(--text-dim); margin-bottom: 7px; }
+  .field input {
+    width: 100%; background: var(--bg-deep); border: 1px solid var(--line); color: var(--text);
+    font-family: var(--font-ui); font-size: 15px; border-radius: 12px; padding: 12px 14px;
+  }
+  .field input:focus { outline: none; border-color: var(--gold); }
+  .sheet-actions { display: flex; gap: 10px; margin-top: 22px; }
+  .btn {
+    flex: 1; border: none; border-radius: 100px; padding: 13px 0; font-family: var(--font-ui);
+    font-weight: 600; font-size: 14.5px; cursor: pointer;
+  }
+  .btn.primary { background: var(--gold); color: #241a08; }
+  .btn.ghost { background: transparent; color: var(--text-dim); border: 1px solid var(--line); }
+
+  .fab-add {
+    display: block; width: 100%; margin-top: 16px; padding: 13px 0;
+    background: transparent; border: 1px dashed var(--line); color: var(--text-dim);
+    border-radius: 16px; font-family: var(--font-ui); font-size: 13.5px; cursor: pointer;
+  }
+
+  .header-row { display: flex; align-items: center; justify-content: center; position: relative; margin-bottom: 30px; }
+  .header-row .route { margin-bottom: 0; }
+  .palette-btn {
+    position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+    width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line);
+    background: var(--surface); color: var(--text); font-size: 15px;
+    display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;
+  }
+
+  .color-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 2px; border-bottom: 1px solid var(--line);
+  }
+  .color-row:last-of-type { border-bottom: none; }
+  .color-row .cr-label { font-size: 14.5px; }
+  .color-row .cr-hint { font-size: 11.5px; color: var(--text-faint); margin-top: 2px; }
+  .color-row input[type="color"] {
+    width: 42px; height: 42px; border: 1px solid var(--line); border-radius: 12px;
+    background: none; padding: 0; cursor: pointer;
+  }
+  .color-row input[type="color"]::-webkit-color-swatch-wrapper { padding: 3px; }
+  .color-row input[type="color"]::-webkit-color-swatch { border-radius: 8px; border: none; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="header-row">
+    <div class="route">
+      <span class="dot"></span><span class="path"></span>🇫🇷 &nbsp;·&nbsp; 🇮🇹<span class="path"></span><span class="dot"></span>
+    </div>
+    <button class="palette-btn" id="openColorsBtn" title="Personnaliser les couleurs">🎨</button>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div id="cardArea"></div>
+
+  <div class="section-label" id="othersLabel" style="display:none;">Autres échéances</div>
+  <div class="list" id="othersList"></div>
+
+  <button class="fab-add" id="openSheetBtn">+ Programmer une nouvelle date</button>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <h2 id="sheetTitle">Nouvelle échéance</h2>
+    <div class="field">
+      <label for="fTitle">Occasion</label>
+      <input id="fTitle" type="text" placeholder="Ex. Je viens te voir à Milan" maxlength="60">
+    </div>
+    <div class="field">
+      <label for="fDate">Date</label>
+      <input id="fDate" type="date">
+    </div>
+    <div class="field">
+      <label for="fTime">Heure</label>
+      <input id="fTime" type="time" value="12:00">
+    </div>
+    <div class="sheet-actions">
+      <button class="btn ghost" id="cancelBtn">Annuler</button>
+      <button class="btn primary" id="saveBtn">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="colorOverlay">
+  <div class="sheet">
+    <h2>Personnaliser les couleurs</h2>
+    <div class="color-row">
+      <div><div class="cr-label">Fond</div><div class="cr-hint">L'arrière-plan général</div></div>
+      <input type="color" id="cBg">
+    </div>
+    <div class="color-row">
+      <div><div class="cr-label">Bloc</div><div class="cr-hint">Cartes et pastilles</div></div>
+      <input type="color" id="cSurface">
+    </div>
+    <div class="color-row">
+      <div><div class="cr-label">Chiffres</div><div class="cr-hint">Nombre de jours, boutons actifs</div></div>
+      <input type="color" id="cGold">
+    </div>
+    <div class="color-row">
+      <div><div class="cr-label">Écriture</div><div class="cr-hint">Titres et texte principal</div></div>
+      <input type="color" id="cText">
+    </div>
+    <div class="color-row">
+      <div><div class="cr-label">Accent</div><div class="cr-hint">Barre de progression</div></div>
+      <input type="color" id="cRose">
+    </div>
+    <div class="sheet-actions">
+      <button class="btn ghost" id="resetColorsBtn">Réinitialiser</button>
+      <button class="btn primary" id="closeColorsBtn">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var STORAGE_KEY = 'retrouvailles-echeances-v1';
+  var state = { events: [], activeId: null };
+
+  function loadState() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        if (parsed && Array.isArray(parsed.events)) {
+          state = parsed;
+          return;
+        }
+      }
+    } catch (e) { /* stockage vide ou corrompu : on repart d'une liste vide */ }
+    state = { events: [], activeId: null };
+  }
+
+  function saveState() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+    catch (e) { console.error('Sauvegarde impossible', e); }
+  }
+
+  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  function fmtDate(iso) {
+    var d = new Date(iso);
+    return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  function diffParts(targetMs) {
+    var now = Date.now();
+    var diff = targetMs - now;
+    var past = diff <= 0;
+    diff = Math.abs(diff);
+    var totalSeconds = Math.floor(diff / 1000);
+    var days = Math.floor(totalSeconds / 86400);
+    var months = Math.floor(days / 30.44);
+    return {
+      past: past,
+      days: days,
+      months: months,
+      totalHours: Math.floor(totalSeconds / 3600),
+      totalMinutes: Math.floor(totalSeconds / 60),
+      totalSeconds: totalSeconds
+    };
+  }
+
+  function progressPct(ev) {
+    var created = new Date(ev.createdAt).getTime();
+    var target = new Date(ev.targetAt).getTime();
+    var now = Date.now();
+    if (target <= created) return 100;
+    var pct = ((now - created) / (target - created)) * 100;
+    return Math.max(0, Math.min(100, pct));
+  }
+
+  function renderTabs() {
+    var tabs = document.getElementById('tabs');
+    tabs.innerHTML = '';
+    state.events.forEach(function (ev) {
+      var el = document.createElement('div');
+      el.className = 'tab' + (ev.id === state.activeId ? ' active' : '');
+      el.textContent = ev.title;
+      el.onclick = function () { state.activeId = ev.id; saveState(); renderAll(); };
+      tabs.appendChild(el);
+    });
+  }
+
+  function renderCard() {
+    var area = document.getElementById('cardArea');
+    var ev = state.events.find(function (e) { return e.id === state.activeId; });
+
+    if (!ev) {
+      area.innerHTML = '<div class="card"><div class="empty">Aucune date programmée pour l\'instant.<br>Ajoutez votre prochaine retrouvaille ci-dessous 🤍</div></div>';
+      return;
+    }
+
+    var d = diffParts(new Date(ev.targetAt).getTime());
+
+    if (d.past) {
+      area.innerHTML =
+        '<div class="card">' +
+          '<div class="event-label">' + fmtDate(ev.targetAt) + '</div>' +
+          '<div class="event-title">' + escapeHtml(ev.title) + '</div>' +
+          '<div class="done-msg">Vous y êtes ✨</div>' +
+        '</div>';
+      return;
+    }
+
+    var pct = progressPct(ev);
+
+    area.innerHTML =
+      '<div class="card">' +
+        '<div class="event-label">' + fmtDate(ev.targetAt) + (d.months >= 1 ? ' · environ ' + d.months + (d.months > 1 ? ' mois' : ' mois') : '') + '</div>' +
+        '<div class="event-title">' + escapeHtml(ev.title) + '</div>' +
+        '<div class="big-days">' +
+          '<div class="num">' + d.days + '</div>' +
+          '<div class="lbl">jour' + (d.days !== 1 ? 's' : '') + ' restant' + (d.days !== 1 ? 's' : '') + '</div>' +
+        '</div>' +
+        '<div class="hms">' +
+          unit(d.totalHours, 'heures') + unit(d.totalMinutes, 'minutes') + unit(d.totalSeconds, 'secondes') +
+        '</div>' +
+        '<div class="progress-wrap">' +
+          '<div class="progress-track"><div class="progress-fill" style="width:' + pct.toFixed(1) + '%"></div></div>' +
+          '<div class="progress-meta"><span>Chemin parcouru</span><span class="pct">' + pct.toFixed(0) + '%</span></div>' +
+        '</div>' +
+      '</div>';
+  }
+
+  function unit(v, label) {
+    return '<div class="unit"><div class="v">' + v.toLocaleString('fr-FR') + '</div><div class="l">' + label + '</div></div>';
+  }
+
+  function escapeHtml(s) {
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function renderOthers() {
+    var label = document.getElementById('othersLabel');
+    var list = document.getElementById('othersList');
+    var others = state.events.filter(function (e) { return e.id !== state.activeId; });
+    list.innerHTML = '';
+    if (others.length === 0) { label.style.display = 'none'; return; }
+    label.style.display = 'block';
+    others.forEach(function (ev) {
+      var d = diffParts(new Date(ev.targetAt).getTime());
+      var row = document.createElement('div');
+      row.className = 'item';
+      row.innerHTML =
+        '<div>' +
+          '<div class="item-title">' + escapeHtml(ev.title) + '</div>' +
+          '<div class="item-date">' + fmtDate(ev.targetAt) + '</div>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:4px;">' +
+          '<div class="item-days">' + (d.past ? '—' : d.days) + '<span class="u">' + (d.past ? 'fait' : 'j') + '</span></div>' +
+          '<button class="item-del" data-id="' + ev.id + '" title="Supprimer">×</button>' +
+        '</div>';
+      row.querySelector('.item-title').parentElement.parentElement.onclick = function (e) {
+        if (e.target.classList.contains('item-del')) return;
+        state.activeId = ev.id; saveState(); renderAll();
+      };
+      row.querySelector('.item-del').onclick = function (e) {
+        e.stopPropagation();
+        if (!confirm('Supprimer « ' + ev.title + ' » ?')) return;
+        state.events = state.events.filter(function (x) { return x.id !== ev.id; });
+        if (state.activeId === ev.id) {
+          state.activeId = state.events.length ? state.events[0].id : null;
+        }
+        saveState(); renderAll();
+      };
+      list.appendChild(row);
+    });
+  }
+
+  function renderAll() {
+    renderTabs();
+    renderCard();
+    renderOthers();
+  }
+
+  // ---- sheet (add form) ----
+  var overlay = document.getElementById('overlay');
+  document.getElementById('openSheetBtn').onclick = function () {
+    document.getElementById('fTitle').value = '';
+    var tomorrow = new Date(Date.now() + 86400000);
+    document.getElementById('fDate').value = tomorrow.toISOString().slice(0, 10);
+    document.getElementById('fTime').value = '12:00';
+    overlay.classList.add('open');
+  };
+  document.getElementById('cancelBtn').onclick = function () { overlay.classList.remove('open'); };
+  overlay.onclick = function (e) { if (e.target === overlay) overlay.classList.remove('open'); };
+
+  document.getElementById('saveBtn').onclick = function () {
+    var title = document.getElementById('fTitle').value.trim();
+    var date = document.getElementById('fDate').value;
+    var time = document.getElementById('fTime').value || '00:00';
+    if (!title || !date) { alert('Merci d\'indiquer une occasion et une date.'); return; }
+    var targetAt = new Date(date + 'T' + time + ':00').toISOString();
+    var ev = { id: uid(), title: title, targetAt: targetAt, createdAt: new Date().toISOString() };
+    state.events.push(ev);
+    state.activeId = ev.id;
+    saveState();
+    overlay.classList.remove('open');
+    renderAll();
+  };
+
+  // ---- couleurs personnalisées ----
+  var COLOR_KEY = 'retrouvailles-couleurs-v1';
+  var defaultColors = { bg: '#0f1326', surface: '#171c38', gold: '#e3b56c', text: '#f1ede4', rose: '#d98f92' };
+
+  function loadColors() {
+    try {
+      var raw = localStorage.getItem(COLOR_KEY);
+      if (raw) { var parsed = JSON.parse(raw); return Object.assign({}, defaultColors, parsed); }
+    } catch (e) { /* on retombe sur les couleurs par défaut */ }
+    return Object.assign({}, defaultColors);
+  }
+
+  function applyColors(c) {
+    var root = document.documentElement.style;
+    root.setProperty('--bg', c.bg);
+    root.setProperty('--surface', c.surface);
+    root.setProperty('--gold', c.gold);
+    root.setProperty('--text', c.text);
+    root.setProperty('--rose', c.rose);
+    document.getElementById('cBg').value = c.bg;
+    document.getElementById('cSurface').value = c.surface;
+    document.getElementById('cGold').value = c.gold;
+    document.getElementById('cText').value = c.text;
+    document.getElementById('cRose').value = c.rose;
+  }
+
+  function saveColors(c) {
+    try { localStorage.setItem(COLOR_KEY, JSON.stringify(c)); } catch (e) { console.error('Sauvegarde couleurs impossible', e); }
+  }
+
+  var currentColors = loadColors();
+  applyColors(currentColors);
+
+  ['cBg', 'cSurface', 'cGold', 'cText', 'cRose'].forEach(function (id) {
+    var key = { cBg: 'bg', cSurface: 'surface', cGold: 'gold', cText: 'text', cRose: 'rose' }[id];
+    document.getElementById(id).addEventListener('input', function (e) {
+      currentColors[key] = e.target.value;
+      applyColors(currentColors);
+      saveColors(currentColors);
+    });
+  });
+
+  var colorOverlay = document.getElementById('colorOverlay');
+  document.getElementById('openColorsBtn').onclick = function () { colorOverlay.classList.add('open'); };
+  document.getElementById('closeColorsBtn').onclick = function () { colorOverlay.classList.remove('open'); };
+  colorOverlay.onclick = function (e) { if (e.target === colorOverlay) colorOverlay.classList.remove('open'); };
+  document.getElementById('resetColorsBtn').onclick = function () {
+    currentColors = Object.assign({}, defaultColors);
+    applyColors(currentColors);
+    saveColors(currentColors);
+  };
+
+  loadState();
+  if (!state.activeId && state.events.length) state.activeId = state.events[0].id;
+  renderAll();
+  setInterval(renderAll, 1000);
+})();
+</script>
+</body>
+</html>
